@@ -34,18 +34,14 @@ public class Plugin : BaseUnityPlugin
         }
             
     }
-    [HarmonyPatch(typeof(HeroController), nameof(HeroController.TakeDamage))]
-    private static void Postfix(int hazardType)
-    {
-        hazardDamage = false;
-        // Logger.LogInfo("tda: set hazardDamage false");
-    }
+
     [HarmonyPatch(typeof(PlayerData), nameof(PlayerData.TakeHealth))]
     private static void Prefix(ref int amount)
     {
         if (hazardDamage)
         {
             amount = 0;// don't take damage
+            hazardDamage = false;
             // Logger.LogInfo("thb: don't take damage.");
         }
         else

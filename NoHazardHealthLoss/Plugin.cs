@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 
@@ -9,7 +8,7 @@ namespace NoHazardHealthLoss;
 public class Plugin : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger;
-    internal static int? prevHealth = null;
+    internal static bool hazardDamage = false;
 
     private void Awake()
     {
@@ -20,27 +19,40 @@ public class Plugin : BaseUnityPlugin
 
     }
 
-    [HarmonyPatch(typeof(HeroController), nameof(HeroController.HazardRespawn))]
-    private static void Postfix(HeroController __instance)
+    [HarmonyPatch(typeof(HeroController), nameof(HeroController.TakeDamage))]
+    private static void Prefix(int hazardType)
     {
-        var pd = __instance.playerData;
-        if(!Plugin.prevHealth.HasValue)
+        if (hazardType >= 2 && hazardType <= 5)
         {
-            Logger.LogError("Got to hazard fn without setting prevHealth correctly.");
-            return;
+            hazardDamage = true;
+            // Logger.LogInfo("tdb: hazard damage. "+hazardType);
         }
-        int prevHealth = Plugin.prevHealth.Value;
-        if(pd.health > prevHealth)
+        else
         {
-            Logger.LogError("Health increased after hazard? How?");
-            return;
+            hazardDamage = false;
+            // Logger.LogInfo("tdb: not hazard damage. " + hazardType);
         }
-        pd.health = prevHealth;
+            
+    }
+    [HarmonyPatch(typeof(HeroController), nameof(HeroController.TakeDamage))]
+    private static void Postfix(int hazardType)
+    {
+        hazardDamage = false;
+        // Logger.LogInfo("tda: set hazardDamage false");
     }
     [HarmonyPatch(typeof(PlayerData), nameof(PlayerData.TakeHealth))]
-    private static void Prefix(PlayerData __instance)
+    private static void Prefix(ref int amount)
     {
-        prevHealth = __instance.health;
+        if (hazardDamage)
+        {
+            amount = 0;// don't take damage
+            // Logger.LogInfo("thb: don't take damage.");
+        }
+        else
+        {
+            // Logger.LogInfo("thb: take damage. "+amount);
+        }
+            
     }
 
 
